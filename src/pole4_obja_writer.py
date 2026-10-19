@@ -13,7 +13,18 @@ class DecimationHistory:
 
     def record_operation(self, record):
         # Ajoute une opération dans la couche courante.
-        pass
+        if len(self.layers) == 0:
+            self.layers.append([record])
+        else:
+            derniere_couche = self.layers[-1]
+            derniere_operation = derniere_couche[-1]
+
+            if derniere_operation.layer_name == record.layer_name:
+                # même couche que l'opération précédente.
+                derniere_couche.append(record)
+            else:
+                # on commence une nouvelle couche.
+                self.layers.append([record])
 
     def get_layers(self):
         # Retourne la liste des couches.
