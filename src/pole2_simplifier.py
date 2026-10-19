@@ -20,6 +20,13 @@ class MeshSimplifier:
     def select_seed_gate(self):
         # Choisit une premiere porte pour demarrer la conquete. ou pour la redemarrer
 
+        liste_faces = self.mesh.get_free_faces()
+        if not liste_faces:
+            return None
+        for id in liste_faces:
+            if self.mesh.get_face_state(id) == StateFlag.FREE : 
+                face = self.mesh.faces[id]
+                return self.mesh.get_gate_info(face.a,face.b)
         return None
 
 
