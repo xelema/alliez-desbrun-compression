@@ -8,19 +8,18 @@ class Retriangulator:
 
     def plan_retriangulation(self, patch, tags):
         new_tri = []
-        new_tags = tags.copy()
 
         # Cas triangle. 
-        if patch.valence() == 3:
+        if patch.valence == 3:
             new_tri.append(patch.border_vertices)
 
             tags_patch = [tags.get(v) for v in patch.border_vertices]
             for v in patch.border_vertices:
                 if tags.get(v) is None:
-                    new_tags[v] = VertexTag.MINUS if tags_patch.count(VertexTag.PLUS) == 2 else VertexTag.PLUS
+                    tags_patch[2] = VertexTag.MINUS if tags_patch.count(VertexTag.PLUS) == 2 else VertexTag.PLUS
 
         # Cas quadrilatère.
-        if patch.valence() == 4:
+        if patch.valence == 4:
             tags_patch = [tags.get(v) for v in patch.border_vertices]
             if tags_patch[1] == VertexTag.PLUS:
                 new_tri.append([patch.border_vertices[0], patch.border_vertices[1], patch.border_vertices[3]])
@@ -36,7 +35,7 @@ class Retriangulator:
 
 
         # Cas pentagone.
-        if patch.valence() == 5:
+        if patch.valence == 5:
             tags_patch = [tags.get(v) for v in patch.border_vertices]
             if tags_patch[0] == VertexTag.PLUS and tags_patch[1] == VertexTag.MINUS:
                 new_tri.append([patch.border_vertices[0], patch.border_vertices[1], patch.border_vertices[2]])
@@ -68,7 +67,7 @@ class Retriangulator:
                 tags_patch[3] = VertexTag.MINUS
                 tags_patch[4] = VertexTag.PLUS
 
-        if patch.valence() ==6:
+        if patch.valence ==6:
             tags_patch = [tags.get(v) for v in patch.border_vertices]
             if tags_patch[0] == VertexTag.PLUS and tags_patch[1] == VertexTag.MINUS:
                 new_tri.append([patch.border_vertices[0], patch.border_vertices[1], patch.border_vertices[2]])
@@ -108,9 +107,14 @@ class Retriangulator:
                 tags_patch[5] = VertexTag.MINUS
 
         # Cas erreur : si la valence est supérieure à 6, on ne peut pas retrianguler.
-        if patch.valence() > 6:
+        if patch.valence > 6:
             raise ValueError("Valence supérieure à 6, retriangulation non supportée.")
 
+        new_tags = tags.copy()
+        for i in range(len(patch.border_vertices)):
+            new_tags[patch.border_vertices[i]] = tags_patch[i]
+
+        print(new_tags)
         return new_tri, new_tags
 
 
@@ -123,7 +127,7 @@ class Validator:
         # Les arêtes du bord appartiennent déjà aux faces voisines du patch.
         # Seules les diagonales introduites par la retriangulation doivent être
         # absentes du maillage existant.
-        return True
+        return False
 
     def check_normal_flipping(self, mesh, patch, new_triangles):
         # Vérifie si les normales sont inversées.
