@@ -44,46 +44,67 @@ class MeshSimplifier:
 
         seed_gate = self.select_seed_gate()
         while seed_gate is not None :
-            seed_gate.v1 = StateFlag.CONQUERED
-            seed_gate.v2 = StateFlag.CONQUERED
+            self.mesh.set_vertex_state(seed_gate.v1, StateFlag.CONQUERED)
+            self.mesh.set_vertex_state(seed_gate.v2, StateFlag.CONQUERED)
             self.vertex_tags[seed_gate.v1] = VertexTag.PLUS
             self.vertex_tags[seed_gate.v2] = VertexTag.MINUS
 
             queue.append(seed_gate)
 
-            while not queue.count == 0 : 
+            while queue : 
 
-                seed_gate_loop = queue.pop
+                seed_gate_loop = queue.popleft()
                 gate = self.mesh.get_gate_info(seed_gate_loop.v1, seed_gate_loop.v2)
-                gate_flag = self.mesh.get_face_state(gate.front_face) 
 
-                if gate is None or gate_flag != StateFlag.FREE : 
-                    pass
-
-                patch = self.mesh.extract_patch(gate)
+                # cas 1 : la porte n'existe plus ou sa face avant est deja traitee
+                if gate is None or self.mesh.get_face_state(gate.front_face) != StateFlag.FREE : 
+                    continue
 
                 front_vertex = gate.front_vertex 
-                if self.mesh.get_vertex_state(front_vertex) == StateFlag.FREE and not self.mesh.is_boundary_vertex(w) and 3 <= self.mesh.get_valence(w) <= 6 and patch is not None  :
-                    # à voir avec mathis pour la sortie 
-                    new_triangles, updated_tags = triangularisation( ..... ) #à recup 
-                    
-                    if self.validator.can_remove(self.mesh, patch, new_triangles, max_error):
-                        
-                        self.vertex_tags = updated_tags
-                        patch.border_vertices = StateFlag.CONQUERED # à voir si ça marche c'est un liste je sais pas si c'est comme en matlab
-                        
-                        for k in range(1, patch.valence): 
-                            queue.append((patch.border_vertices[(k + 1) % patch.valence], patch.border_vertices[k]))
+                patch = None
+                can_delete = False
 
-                        added_face_indices = self.mesh.apply_patch_decimation(patch, new_triangles)
-                        
-                        self.history.record_operation(...) = DecimationRecord(""" à remplir avec les truc précédent """) # je sais pas si on le garde comme ça c'est bancale 
+                if self.mesh.get_vertex_state(front_vertex) == StateFlag.FREE and not self.mesh.is_boundary_vertex(front_vertex) and 3 <= self.mesh.get_valence(front_vertex) <= 6 :
+                    patch = self.mesh.extract_patch(gate)
 
-                        removed_count += 1
+                if patch is not None :
+                    new_triangles, updated_tags = self.retriangulator.plan_retriangulation(patch, self.vertex_tags)
+                    can_delete = self.validator.can_remove_vertex(self.mesh, patch, new_triangles, max_error)
+
+                if can_delete :
+                    # cas 2 : on supprime le sommet
+                    self.vertex_tags = updated_tags
+                    for v in patch.border_vertices :
+                        self.mesh.set_vertex_state(v, StateFlag.CONQUERED)
+
+                    # les v-1 portes de sortie (on saute la porte d'entree k=0)
+                    for k in range(1, patch.valence): 
+                        exit_gate = self.mesh.get_gate_info(patch.border_vertices[(k + 1) % patch.valence], patch.border_vertices[k])
+                        if exit_gate is not None :
+                            queue.append(exit_gate)
+
+                    added_face_indices = self.mesh.apply_patch_decimation(patch, new_triangles)
+
+                    self.history.record_operation(DecimationRecord(
+                        f"A_{layer_index}",
+                        patch.center_vertex,
+                        list(patch.incident_faces),
+                        new_triangles,
+                        list(patch.border_vertices),
+                        added_face_indices))
+
+                    removed_count += 1
                 else : 
-                    gate.front_face = StateFlag.CONQUERED
-                    queue.append(front_vertex, gate.v2)
-                    queue.append(gate.v1, front_vertex)
+                    # cas 3 : null patch, on ne supprime rien mais on avance
+                    self.mesh.set_face_state(gate.front_face, StateFlag.CONQUERED)
+                    for exit_gate in (self.mesh.get_gate_info(front_vertex, gate.v2), self.mesh.get_gate_info(gate.v1, front_vertex)) :
+                        if exit_gate is not None :
+                            queue.append(exit_gate)
+
+            # file vide : on cherche une autre graine (autre composante connexe)
+            seed_gate = self.select_seed_gate()
+
+        return removed_count
 
 
 
