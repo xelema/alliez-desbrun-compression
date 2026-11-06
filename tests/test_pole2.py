@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Script de test autonome pour le Pôle 2 (`src/pole2_conquest.py`).
+Script de test autonome pour le Pôle 2 (`src/pole2_simplifier.py`).
 
 Ce script inclut des mocks légers simulant les Pôles 1, 3 et 4 sur un octaèdre
 (6 sommets de valence 4, 8 faces triangulaires) afin que tu puisses tester
-ton `ConquestEngine` sans attendre les 3 autres membres.
+ton `MeshSimplifier` sans attendre les 3 autres membres.
 
 Utilisation depuis la racine du dépôt :
     python tests/test_pole2.py
@@ -20,7 +20,7 @@ if str(ROOT_DIR) not in sys.path:
 import numpy as np
 import demo.obja as obja
 from src.interfaces import Gate, Patch, StateFlag, VertexTag
-from src.pole2_conquest import ConquestEngine
+from src.pole2_simplifier import MeshSimplifier
 
 
 class MockOctahedronMesh(obja.Model):
@@ -151,15 +151,21 @@ class DummyHistory:
     def record_operation(self, record):
         self.records.append(record)
 
+    def get_layers(self):
+        layers = {}
+        for r in self.records:
+            layers.setdefault(r.layer_name, []).append(r)
+        return list(layers.values())
+
 
 def test_pole2() -> None:
-    print("=== Test autonome du Pôle 2 (ConquestEngine) ===")
+    print("=== Test autonome du Pôle 2 (MeshSimplifier) ===")
     mesh = MockOctahedronMesh()
     retri = DummyRetriangulator()
     validator = DummyValidator()
     history = DummyHistory()
 
-    engine = ConquestEngine(
+    engine = MeshSimplifier(
         mesh=mesh,
         retriangulator=retri,
         validator=validator,
@@ -181,7 +187,7 @@ def test_pole2() -> None:
     # 3. Test de simplify sur un nouvel octaèdre
     mesh2 = MockOctahedronMesh()
     history2 = DummyHistory()
-    engine2 = ConquestEngine(mesh2, retri, validator, history2)
+    engine2 = MeshSimplifier(mesh2, retri, validator, history2)
     engine2.simplify(min_vertices=4, max_layers=2)
     assert len(mesh2.get_active_vertices()) <= 5
     print(

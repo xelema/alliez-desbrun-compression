@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script de test autonome pour le Pôle 1 (`src/pole1_topology.py`).
+Script de test autonome pour le Pôle 1 (`src/pole1_mesh.py`).
 
 Utilisation depuis la racine du dépôt :
     python tests/test_pole1.py
@@ -15,7 +15,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from src.interfaces import StateFlag
-from src.pole1_topology import DynamicMesh
+from src.pole1_mesh import DynamicMesh
 
 
 def test_pole1() -> None:
