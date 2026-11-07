@@ -186,5 +186,11 @@ class MeshSimplifier:
         return removed_count
 
     def simplify(self, min_vertices=4, max_layers=None, max_error=None):
-        # Boucle principale qui enchaîne les couches Ai et Bi.
-        pass
+        while self.mesh.get_active_vertex_count() > min_vertices and (max_layers is None or self.history.get_layer_count() < max_layers):
+            layer_index = self.history.get_layer_count() + 1
+            removed_in_decimation = self.run_decimation_pass(layer_index, max_error)
+            if (len(self.mesh.get_active_vertices()) > min_vertices):
+                removed_in_cleaning = self.run_cleaning_pass(layer_index, max_error)
+
+            if removed_in_decimation == 0 and removed_in_cleaning == 0:
+                break
