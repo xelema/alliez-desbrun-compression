@@ -151,22 +151,16 @@ class Validator:
     def check_normal_flipping(self, mesh, patch, new_triangles):
         # Vérifie si les normales sont inversées.
         def triangle_normal(triangle):
-            a, b, c = (np.asarray(mesh.vertices[index], dtype=float) for index in triangle)
+            a, b, c = mesh.vertices[triangle[0]], mesh.vertices[triangle[1]], mesh.vertices[triangle[2]]
             return np.cross(b - a, c - a)
 
-        reference_normals = [
-            triangle_normal((face.a, face.b, face.c))
-            for index, face in enumerate(mesh.faces)
-            if index in patch.incident_faces and getattr(face, "visible", True)
-        ]
-        reference = np.sum(reference_normals, axis=0)
-        if np.linalg.norm(reference) == 0:
-            return False
-
-        return all(
-            np.dot(triangle_normal(triangle), reference) > 0
-            for triangle in new_triangles
-        )
+        ref_normal = triangle_normal([patch.border_vertices[0], patch.border_vertices[1], patch.border_vertices[2]])
+        for tri in new_triangles:
+            new_normal = triangle_normal(tri)
+            if np.dot(ref_normal, new_normal) < 0:
+                print(f"Normal flipping détecté pour le triangle {tri}.")
+                return False
+        return True
 
     def compute_geometric_error(self, mesh, patch, new_triangles):
         # Calcule l'erreur géométrique entre le maillage original et le nouveau maillage.
