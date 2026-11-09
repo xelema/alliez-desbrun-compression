@@ -213,6 +213,6 @@ class Validator:
             return False
         if self.check_normals and not self.check_normal_flipping(mesh, patch, new_triangles):
             return False
-        if not self.compute_geometric_error(mesh, patch, new_triangles) <= max_error:
+        if max_error is not None and not self.compute_geometric_error(mesh, patch, new_triangles) <= max_error:
             return False
         return True
