@@ -127,25 +127,85 @@ class Validator:
         # Les arêtes du bord appartiennent déjà aux faces voisines du patch.
         # Seules les diagonales introduites par la retriangulation doivent être
         # absentes du maillage existant.
+        border = patch.border_vertices
+        border_edges = {
+            tuple(sorted((border[i], border[(i + 1) % len(border)])))
+            for i in range(len(border))
+        }
+
         for tri in new_triangles:
-            for v1, v2,v3 in tri:
-                if mesh.has_edge(v1, v2):
-                    return False
-                if mesh.has_edge(v2, v3):
-                    return False
-                if mesh.has_edge(v3, v1):
+            print(f"Vérification de la triangle {tri} dans le maillage...")
+            v1, v2, v3 = tri
+            if len({v1, v2, v3}) != 3:
+                print(f"Triangle dégénéré {tri}.")
+                return False
+
+            for edge in ((v1, v2), (v2, v3), (v3, v1)):
+                if tuple(sorted(edge)) in border_edges:
+                    continue
+                if mesh.has_edge(*edge):
+                    print(f"Edge {edge} existe déjà dans le maillage.")
                     return False
         return True
 
     def check_normal_flipping(self, mesh, patch, new_triangles):
         # Vérifie si les normales sont inversées.
-        return False  # Placeholder, implémentation à compléter selon les besoins.
+        def triangle_normal(triangle):
+            a, b, c = (np.asarray(mesh.vertices[index], dtype=float) for index in triangle)
+            return np.cross(b - a, c - a)
+
+        reference_normals = [
+            triangle_normal((face.a, face.b, face.c))
+            for index, face in enumerate(mesh.faces)
+            if index in patch.incident_faces and getattr(face, "visible", True)
+        ]
+        reference = np.sum(reference_normals, axis=0)
+        if np.linalg.norm(reference) == 0:
+            return False
+
+        return all(
+            np.dot(triangle_normal(triangle), reference) > 0
+            for triangle in new_triangles
+        )
 
     def compute_geometric_error(self, mesh, patch, new_triangles):
         # Calcule l'erreur géométrique entre le maillage original et le nouveau maillage.
         # Le volume de l'enveloppe fermée formée par les deux triangulations
         # est calculé par somme de tétraèdres orientés.
-        return 0.0  # Placeholder, implémentation à compléter selon les besoins.
+        def signed_tetra_volume(a, b, c):
+            pa, pb, pc = (
+                np.asarray(mesh.vertices[index], dtype=float)
+                for index in (a, b, c)
+            )
+            center = np.asarray(mesh.vertices[patch.center_vertex], dtype=float)
+            return abs(np.dot(pa - center, np.cross(pb - center, pc - center))) / 6.0
+
+        original_volume = sum(
+            signed_tetra_volume(
+                face.a,
+                face.b,
+                face.c,
+            )
+            for index, face in enumerate(mesh.faces)
+            if index in patch.incident_faces and getattr(face, "visible", True)
+        )
+        new_volume = sum(
+            signed_tetra_volume(triangle[0], triangle[1], triangle[2])
+            for triangle in new_triangles
+        )
+        volume = abs(original_volume - new_volume)
+
+        border_points = [
+            np.asarray(mesh.vertices[index], dtype=float)
+            for index in patch.border_vertices
+        ]
+        perimeter = sum(
+            np.linalg.norm(border_points[i] - border_points[(i + 1) % len(border_points)])
+            for i in range(len(border_points))
+        )
+        if perimeter == 0 or patch.valence == 0:
+            return 0.0
+        return volume ** (1.0 / 3.0) / (perimeter / patch.valence)
 
     def can_remove_vertex(self, mesh, patch, new_triangles, max_error=0.25):
         # Un patch de valence v doit être remplacé par exactement v - 2 triangles.
