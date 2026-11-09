@@ -37,7 +37,28 @@ class GeometryPredictor:
     def compute_frenet_frame(self, mesh, border_vertices, patch_triangles):
         # Calcule le barycentre et la base locale (t1, t2, normale).
 
-        return np.zeros(3), np.zeros(3), np.zeros(3), np.zeros(3)
+        barycenter = np.mean([mesh.vertices[pos] for pos in border_vertices], axis=0)
+
+        normales_triangle = []
+
+        for t in patch_triangles:
+            pa = mesh.vertices[t[0]]
+            pb = mesh.vertices[t[1]]
+            pc = mesh.vertices[t[2]]
+            normales_triangle.append(np.cross(pb - pa, pc - pa))
+
+        normale = np.sum(normales_triangle, axis=0)
+        normale_norm = normale / np.linalg.norm(normale)
+
+        n = barycenter + normale_norm
+
+        g = mesh.vertices[border_vertices[0]] + barycenter
+        g -= (np.dot(g, normale_norm) * normale_norm)
+
+        t1 = g / np.linalg.norm(g)
+        t2 = np.cross(normale_norm, t1)
+
+        return barycenter, t1, t2, n
 
     def decompose_residual(self, vertex_pos, barycenter, t1, t2, normal):
         # Calcule les coordonnées du résidu (alpha, beta, gamma).
