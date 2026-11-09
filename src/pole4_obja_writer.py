@@ -52,7 +52,7 @@ class GeometryPredictor:
 
         n = barycenter + normale_norm
 
-        g = mesh.vertices[border_vertices[0]] + barycenter
+        g = (mesh.vertices[border_vertices[1]] - mesh.vertices[border_vertices[0]]) + barycenter
         g -= (np.dot(g, normale_norm) * normale_norm)
 
         t1 = g / np.linalg.norm(g)
