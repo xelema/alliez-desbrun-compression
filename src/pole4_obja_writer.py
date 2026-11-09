@@ -76,6 +76,11 @@ class OBJAWriter:
 
     def export(self, base_mesh, history, output_path):
         # Exporte le maillage grossier puis rejoue les couches à l'envers.
+        for i, layer in enumerate(history):
+            print(f"couche {i} ({len(layer)} records)")
+            for record in layer:
+                print(vars(record))
+
         with open(output_path, "w") as file:
             out = obja.Output(file, random_color=False)
 
