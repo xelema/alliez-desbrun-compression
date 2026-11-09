@@ -101,6 +101,8 @@ class DynamicMesh(obja.Model):
             incident_faces = [gate.front_face]
             while True:
                 gate_next = self.get_gate_info(center, u_next)
+                if gate_next is None or len(border_vertices) > len(self.vertex_faces[center]):
+                    return None
                 border_vertices.append(u_curr)
                 u_curr, u_next = u_next, gate_next.front_vertex
 
@@ -132,7 +134,7 @@ class DynamicMesh(obja.Model):
         added_face_indices = []
         for tri in new_triangles:
             a, b, c = tri
-            new_f_index = len(self.faces) -1
+            new_f_index = len(self.faces)
             added_face_indices.append(new_f_index)
             self.faces.append(obja.Face(a, b, c))
             self.active_faces.add(new_f_index)

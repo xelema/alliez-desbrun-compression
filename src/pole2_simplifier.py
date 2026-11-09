@@ -189,6 +189,7 @@ class MeshSimplifier:
         while len(self.mesh.get_active_vertices()) > min_vertices and (max_layers is None or len(self.history.get_layers()) < max_layers):
             layer_index = len(self.history.get_layers()) + 1
             removed_in_decimation = self.run_decimation_pass(layer_index, max_error)
+            removed_in_cleaning = 0
             if (len(self.mesh.get_active_vertices()) > min_vertices):
                 removed_in_cleaning = self.run_cleaning_pass(layer_index, max_error)
 
