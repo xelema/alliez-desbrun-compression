@@ -9,18 +9,20 @@ class Retriangulator:
     def plan_retriangulation(self, patch, tags):
         new_tri = []
 
+        # Balises par défaut de la porte d'entrée (cf. guide) : v0 = +, v1 = -.
+        tags_patch = [tags.get(v) for v in patch.border_vertices]
+        if tags_patch[0] is None:
+            tags_patch[0] = VertexTag.PLUS
+        if tags_patch[1] is None:
+            tags_patch[1] = VertexTag.MINUS
+
         # Cas triangle.
         if patch.valence == 3:
-            new_tri.append(patch.border_vertices)
-
-            tags_patch = [tags.get(v) for v in patch.border_vertices]
-            for v in patch.border_vertices:
-                if tags.get(v) is None:
-                    tags_patch[2] = VertexTag.MINUS if tags_patch.count(VertexTag.PLUS) == 2 else VertexTag.PLUS
+            new_tri.append(list(patch.border_vertices))
+            tags_patch[2] = VertexTag.MINUS if tags_patch.count(VertexTag.PLUS) == 2 else VertexTag.PLUS
 
         # Cas quadrilatère.
         if patch.valence == 4:
-            tags_patch = [tags.get(v) for v in patch.border_vertices]
             if tags_patch[1] == VertexTag.PLUS:
                 new_tri.append([patch.border_vertices[0], patch.border_vertices[1], patch.border_vertices[3]])
                 new_tri.append([patch.border_vertices[1], patch.border_vertices[2], patch.border_vertices[3]])
@@ -36,7 +38,6 @@ class Retriangulator:
 
         # Cas pentagone.
         if patch.valence == 5:
-            tags_patch = [tags.get(v) for v in patch.border_vertices]
             if tags_patch[0] == VertexTag.PLUS and tags_patch[1] == VertexTag.MINUS:
                 new_tri.append([patch.border_vertices[0], patch.border_vertices[1], patch.border_vertices[2]])
                 new_tri.append([patch.border_vertices[0], patch.border_vertices[2], patch.border_vertices[4]])
@@ -67,8 +68,7 @@ class Retriangulator:
                 tags_patch[3] = VertexTag.MINUS
                 tags_patch[4] = VertexTag.PLUS
 
-        if patch.valence ==6:
-            tags_patch = [tags.get(v) for v in patch.border_vertices]
+        if patch.valence == 6:
             if tags_patch[0] == VertexTag.PLUS and tags_patch[1] == VertexTag.MINUS:
                 new_tri.append([patch.border_vertices[0], patch.border_vertices[1], patch.border_vertices[2]])
                 new_tri.append([patch.border_vertices[0], patch.border_vertices[2], patch.border_vertices[4]])
@@ -110,9 +110,11 @@ class Retriangulator:
         if patch.valence > 6:
             raise ValueError("Valence supérieure à 6, retriangulation non supportée.")
 
+        # Une balise déjà attribuée n'est jamais modifiée (Section 3.5).
         new_tags = tags.copy()
         for i in range(len(patch.border_vertices)):
-            new_tags[patch.border_vertices[i]] = tags_patch[i]
+            if patch.border_vertices[i] not in new_tags:
+                new_tags[patch.border_vertices[i]] = tags_patch[i]
 
         # print(new_tags)
         return new_tri, new_tags
@@ -203,6 +205,8 @@ class Validator:
 
     def can_remove_vertex(self, mesh, patch, new_triangles, max_error=0.25):
         # Un patch de valence v doit être remplacé par exactement v - 2 triangles.
+        if len(new_triangles) != patch.valence - 2:
+            return False
         if not self.check_manifold(mesh, patch, new_triangles):
             return False
         if self.check_normals and not self.check_normal_flipping(mesh, patch, new_triangles):
