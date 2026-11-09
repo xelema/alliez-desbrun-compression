@@ -110,8 +110,36 @@ class DynamicMesh(obja.Model):
             if len(border_vertices) != len(self.vertex_faces[center]):
                 return None
             return Patch(center, len(border_vertices), border_vertices, incident_faces, gate)
-
         return None
 
     def apply_patch_decimation(self, patch, new_triangles):
-        return []
+        for f_idx in patch.incident_faces:
+            
+            self.faces[f_idx].visible = False
+            self.active_faces.discard(f_idx)
+            self.face_states[f_idx] = StateFlag.TO_BE_REMOVED
+
+            face = self.faces[f_idx]
+            self.half_edges.pop((face.a, face.b), None)
+            self.half_edges.pop((face.b, face.c), None)
+            self.half_edges.pop((face.c, face.a), None)
+            self.vertex_faces[face.a].discard(f_idx)
+            self.vertex_faces[face.b].discard(f_idx)
+            self.vertex_faces[face.c].discard(f_idx)
+
+            self.active_vertices.discard(patch.center_vertex)
+            self.vertex_states[patch.center_vertex] = StateFlag.TO_BE_REMOVED
+        added_face_indices = []
+        for tri in new_triangles:
+            a, b, c = tri
+            new_f_index = len(self.faces) -1
+            added_face_indices.append(new_f_index)
+            self.faces.append(obja.Face(a, b, c))
+            self.active_faces.add(new_f_index)
+            self.face_states[new_f_index] = StateFlag.CONQUERED
+            self.half_edges[(a, b)] = new_f_index
+            self.half_edges[(b, c)] = new_f_index
+            self.half_edges[(c, a)] = new_f_index
+            for vertex in (a, b, c):
+                self.vertex_faces[vertex].add(new_f_index)
+        return added_face_indices
