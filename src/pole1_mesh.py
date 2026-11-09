@@ -27,12 +27,12 @@ class DynamicMesh(obja.Model):
             self.active_faces.add(face_index)
             self.face_states[face_index] = StateFlag.FREE
 
-            v1, v2, v3 = face
+            v1, v2, v3 = face.a, face.b, face.c
             self.half_edges[(v1, v2)] = face_index
             self.half_edges[(v2, v3)] = face_index
             self.half_edges[(v3, v1)] = face_index
 
-            for vertex in face:
+            for vertex in (v1, v2, v3):
                 if vertex not in self.vertex_faces:
                     self.vertex_faces[vertex] = set()
                 self.vertex_faces[vertex].add(face_index)
@@ -50,9 +50,10 @@ class DynamicMesh(obja.Model):
     def is_boundary_vertex(self, vertex_index):
         for face_index in self.vertex_faces.get(vertex_index, []):
             face = self.faces[face_index]
+            verts = (face.a, face.b, face.c)
             for i in range(3):
-                v1 = face[i]
-                v2 = face[(i + 1) % 3]
+                v1 = verts[i]
+                v2 = verts[(i + 1) % 3]
                 if (v1, v2) not in self.half_edges or (v2, v1) not in self.half_edges:
                     return True
         return False
@@ -89,23 +90,23 @@ class DynamicMesh(obja.Model):
         if (v1, v2) in self.half_edges:
             face_index = self.half_edges[(v1, v2)]
             face = self.faces[face_index]
-            front_vertex = next(v for v in face if v != v1 and v != v2)
+            front_vertex = next(v for v in (face.a, face.b, face.c) if v != v1 and v != v2)
             return Gate(v1, v2, face_index, front_vertex)
         return None
 
     def extract_patch(self, gate):
         if not self.is_boundary_vertex(gate.v1):
             border_vertices = []
-            u_curr, u_next, center = self.faces[gate.front_face]
+            u_curr, u_next, center = gate.v1, gate.v2, gate.front_vertex
             incident_faces = [gate.front_face]
             while True:
                 gate_next = self.get_gate_info(center, u_next)
                 border_vertices.append(u_curr)
-                incident_faces.append(gate_next.front_face)
-                u_curr, u_next, center = self.faces[gate_next.front_face]
-                
+                u_curr, u_next = u_next, gate_next.front_vertex
+
                 if u_curr == gate.v1:
                     break
+                incident_faces.append(gate_next.front_face)
             if len(border_vertices) != len(self.vertex_faces[center]):
                 return None
             return Patch(center, len(border_vertices), border_vertices, incident_faces, gate)
