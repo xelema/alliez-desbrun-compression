@@ -41,7 +41,13 @@ class GeometryPredictor:
 
     def decompose_residual(self, vertex_pos, barycenter, t1, t2, normal):
         # Calcule les coordonnées du résidu (alpha, beta, gamma).
-        return 0.0, 0.0, 0.0
+        residu = vertex_pos - barycenter
+
+        alpha = np.dot(residu, t1)
+        beta = np.dot(residu, t2)
+        gamma = np.dot(residu, normal)
+
+        return alpha, beta, gamma
 
 
 class OBJAWriter:
