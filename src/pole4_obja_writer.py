@@ -76,4 +76,28 @@ class OBJAWriter:
 
     def export(self, base_mesh, history, output_path):
         # Exporte le maillage grossier puis rejoue les couches à l'envers.
+        with open(output_path, "w") as file:
+            out = obja.Output(file, random_color=False)
+
+            # écriture du maillage grossier
+            for v_id in base_mesh.get_active_vertices():
+                out.add_vertex(v_id, base_mesh.vertices[v_id])
+
+            for f_id in base_mesh.get_active_faces():
+                out.add_face(f_id, base_mesh.faces[f_id])
+
+            # écriture des couches (à l'envers)
+            # B_n, A_n, B_{n-1}, etc...
+            for layer in reversed(history):
+                for record in layer:
+                    #ajout du sommet retiré
+                    out.add_vertex(record.removed_vertex, base_mesh.vertices[record.removed_vertex])
+
+                    for k in record.added_face_indices:
+                        # il n'y pas out.remove_face
+                        print('df {}'.format(out.face_mapping[k] + 1), file=file)
+
+                    for orig in record.removed_faces:
+                        out.add_face(orig, base_mesh.faces[orig])
+
         pass
