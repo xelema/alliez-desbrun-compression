@@ -18,6 +18,8 @@ def parse_args():
     parser.add_argument("--max-layers", type=int, default=None, help="Nombre maximal de couches")
     parser.add_argument("--max-error", type=float, default=None, help="Seuil d'erreur géométrique")
     parser.add_argument("--no-normal-check", action="store_true", help="Désactive le test des normales")
+    parser.add_argument("--face-method", choices=["ef", "df"], default="ef",
+                        help="ef : recycle les faces temporaires (fichier plus léger), df : les cache puis ajoute")
     return parser.parse_args()
 
 
@@ -48,7 +50,7 @@ def main():
     )
 
     writer = OBJAWriter()
-    writer.export(mesh, history.get_layers(), output_path)
+    writer.export(mesh, history.get_layers(), output_path, method=args.face_method)
 
 
 if __name__ == "__main__":
