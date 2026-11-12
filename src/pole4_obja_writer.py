@@ -74,15 +74,20 @@ class GeometryPredictor:
 class OBJAWriter:
     # Écriture du fichier .obja final en inversant les couches.
 
-    def export(self, base_mesh, history, output_path):
+    def export(self, base_mesh, history, output_path, method="ef"):
         # Exporte le maillage grossier puis rejoue les couches à l'envers.
+        # method = "ef" : recycle les places des faces temporaires
+        # method = "df" : cache les faces temporaires puis ajoute les faces d'origine
+        if method not in ("ef", "df"):
+            raise ValueError(f"méthode inconnue : {method} (attendu 'ef' ou 'df')")
+
         for i, layer in enumerate(history):
             print(f"couche {i} ({len(layer)} records)")
             for record in layer:
                 print(vars(record))
 
         with open(output_path, "w") as file:
-            out = obja.Output(file, random_color=False)
+            out = obja.Output(file, random_color=True)
 
             # écriture du maillage grossier
             for v_id in base_mesh.get_active_vertices():
@@ -98,11 +103,21 @@ class OBJAWriter:
                     #ajout du sommet retiré
                     out.add_vertex(record.removed_vertex, base_mesh.vertices[record.removed_vertex])
 
-                    for k in record.added_face_indices:
-                        # il n'y pas out.remove_face
-                        print('df {}'.format(out.face_mapping[k] + 1), file=file)
+                    if method == "ef":
+                        # la face d'origine prend la place de la face temporaire, puis on la réécrit
+                        for k, temp in enumerate(record.added_face_indices):
+                            orig = record.removed_faces[k]
+                            out.face_mapping[orig] = out.face_mapping.pop(temp)
+                            out.edit_face(orig, base_mesh.faces[orig])
 
-                    for orig in record.removed_faces:
-                        out.add_face(orig, base_mesh.faces[orig])
+                        # les 2 faces d'origine restantes n'ont pas de place à recycler
+                        for orig in record.removed_faces[len(record.added_face_indices):]:
+                            out.add_face(orig, base_mesh.faces[orig])
 
-        pass
+                    else:
+                        for k in record.added_face_indices:
+                            # il n'y pas out.remove_face
+                            print('df {}'.format(out.face_mapping[k] + 1), file=file)
+
+                        for orig in record.removed_faces:
+                            out.add_face(orig, base_mesh.faces[orig])
