@@ -50,15 +50,13 @@ class GeometryPredictor:
         normale = np.sum(normales_triangle, axis=0)
         normale_norm = normale / np.linalg.norm(normale)
 
-        n = barycenter + normale_norm
-
-        g = (mesh.vertices[border_vertices[1]] - mesh.vertices[border_vertices[0]]) + barycenter
+        g = mesh.vertices[border_vertices[1]] - mesh.vertices[border_vertices[0]]
         g -= (np.dot(g, normale_norm) * normale_norm)
 
         t1 = g / np.linalg.norm(g)
         t2 = np.cross(normale_norm, t1)
 
-        return barycenter, t1, t2, n
+        return barycenter, t1, t2, normale_norm
 
     def decompose_residual(self, vertex_pos, barycenter, t1, t2, normal):
         # Calcule les coordonnées du résidu (alpha, beta, gamma).
