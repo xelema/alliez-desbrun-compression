@@ -30,13 +30,10 @@ python server.py
 
 Puis ouvrir http://localhost:8000/?example/suzanne.obja dans un navigateur.
 
-## Tests
+## Utilisation de l'IA
 
-Un script par pôle, à lancer depuis la racine :
+- Questions diverses sur le projet
+- Ecriture des tests unitaires
+- Validation de l'interface et des pôles avant de coder (écrit par nous au préalable)
 
-```
-python tests/test_pole1.py
-python tests/test_pole2.py
-python tests/test_pole3.py
-python tests/test_pole4.py
-```
+(Modèle utilisé : Gemini)
